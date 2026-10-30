@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Einkauf">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2f7d4f">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>Einkauf</title>
+<style>
+  :root {
+    --bg: #f5f5f0; --card: #fff; --text: #1d1d1b; --muted: #7a7a72;
+    --accent: #2f7d4f; --accent-soft: #e2f0e7; --line: #e6e6df; --danger: #b3382c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151614; --card: #1f211e; --text: #ecece6; --muted: #8d8f87;
+            --accent: #5bb882; --accent-soft: #23352a; --line: #2c2e2a; --danger: #e0705f; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    display: flex; flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px 6px;
+  }
+  header h1 { margin: 0; font-size: 28px; font-weight: 700; }
+  header button { background: none; border: 0; color: var(--accent); font-size: 17px; padding: 8px 0 8px 12px; }
+  main { flex: 1; overflow-y: auto; padding: 4px 14px 24px; -webkit-overflow-scrolling: touch; }
+  nav {
+    display: flex; background: var(--card); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  nav button {
+    flex: 1; padding: 14px 0 12px; background: none; border: 0;
+    font-size: 16px; color: var(--muted); font-weight: 600;
+  }
+  nav button.active { color: var(--accent); }
+  nav .badge {
+    display: inline-block; min-width: 22px; padding: 1px 7px; margin-left: 6px;
+    border-radius: 11px; background: var(--accent); color: #fff; font-size: 13px;
+  }
+  section { margin-top: 16px; }
+  section h2 {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 4px 6px; font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  }
+  section h2 button { background: none; border: 0; color: var(--accent); font-size: 22px; line-height: 1; padding: 0 4px; }
+  .list { background: var(--card); border-radius: 12px; overflow: hidden; }
+  .row {
+    display: flex; align-items: center; width: 100%;
+    padding: 13px 14px; border: 0; border-top: 1px solid var(--line);
+    background: none; color: var(--text); font: inherit; text-align: left;
+  }
+  .row:first-child { border-top: 0; }
+  .row .dot {
+    width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line);
+    margin-right: 12px; flex: none; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 14px;
+  }
+  .row.on { background: var(--accent-soft); }
+  .row.on .dot { background: var(--accent); border-color: var(--accent); }
+  .row.on .dot::after { content: "✓"; }
+  .row .name { flex: 1; }
+  .row .del { color: var(--danger); font-size: 22px; padding: 0 4px; background: none; border: 0; }
+  .empty { text-align: center; color: var(--muted); margin: 60px 20px; }
+  .empty b { display: block; font-size: 22px; margin-bottom: 6px; color: var(--text); }
+  .hint { text-align: center; color: var(--muted); font-size: 14px; margin: 18px 0 0; }
+  .tools { display: flex; gap: 10px; margin-top: 22px; }
+  .tools button {
+    flex: 1; padding: 11px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); color: var(--text); font: inherit; font-size: 15px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Einkauf</h1>
+  <button id="editBtn">Bearbeiten</button>
+</header>
+<main id="main"></main>
+<nav>
+  <button id="tabItems">Artikel</button>
+  <button id="tabShop">Einkauf <span class="badge" id="badge">0</span></button>
+</nav>
+
+<script>
+const KEY = "einkauf-v1";
+const DEFAULT = [
+  {
+    "name": "Obst",
+    "items": [
+      "Äpfel",
+      "Orangen",
+      "Kiwi",
+      "Bananen",
+      "Himbeeren",
+      "Blaubeeren",
+      "Erdbeeren",
+      "Nektarinen",
+      "Pfirsiche"
+    ]
+  },
+  {
+    "name": "Gemüse",
+    "items": [
+      "Salat",
+      "Gurke",
+      "Paprika",
+      "Chili",
+      "Champignons",
+      "Sellerie",
+      "Porree / Lauch",
+      "Ingwer",
+      "Tomaten",
+      "Fenchel",
+      "Zucchini",
+      "Radieschen",
+      "Zwiebeln",
+      "Knoblauch",
+      "Spargel",
+      "Kartoffeln",
+      "Bärlauch"
+    ]
+  },
+  {
+    "name": "Bäckerei",
+    "items": [
+      "Toast (Butter)",
+      "Toast (Dinkel)",
+      "Graubrot",
+      "Brötchen",
+      "Müsli"
+    ]
+  },
+  {
+    "name": "Molkerei",
+    "items": [
+      "Milch",
+      "Kaffeemilch/Sahne",
+      "Butter",
+      "Käse",
+      "Mozzarella",
+      "Brie de Meaux",
+      "Epoisse (läufig)",
+      "Joghurt",
+      "Eier",
+      "Eier hart",
+      "Sahne Flasche",
+      "Schokoeis",
+      "Vanilleis",
+      "Fol Epi Kürbis",
+      "Ziegenkäse Chavroux (Rolle)",
+      "Feta",
+      "Parmesan"
+    ]
+  },
+  {
+    "name": "Fleisch & Wurst",
+    "items": [
+      "Zwiebelwurst",
+      "Mett",
+      "Lammlachse",
+      "Parmesan-Salami",
+      "Hühnersülze Florida",
+      "Cabanossi",
+      "Teewurst",
+      "Leberwurst",
+      "Frühstücksfleisch",
+      "Churriço"
+    ]
+  },
+  {
+    "name": "Dosen & Fertig",
+    "items": [
+      "Spargelsuppe",
+      "Spargel Glas",
+      "Fisch - Sard., Makrele",
+      "Bihuhnsuppe",
+      "Krautsalat",
+      "Kartoffelsalat",
+      "Suppen"
+    ]
+  },
+  {
+    "name": "Gewürze",
+    "items": [
+      "Ketchup",
+      "Mayo",
+      "Senf",
+      "Tomatenmark",
+      "Öl",
+      "Essig",
+      "Brühe",
+      "Zucker",
+      "Salz",
+      "Pfeffer",
+      "Piripiri",
+      "Dill",
+      "Salatsauce",
+      "Koriander"
+    ]
+  },
+  {
+    "name": "Getränke",
+    "items": [
+      "Wasser",
+      "Apfelschorle",
+      "Eistee",
+      "Wein",
+      "Volvik lemonlime",
+      "Mineralwasser"
+    ]
+  },
+  {
+    "name": "Snacks",
+    "items": [
+      "Schokolade",
+      "Brezel",
+      "Müsliriegel"
+    ]
+  },
+  {
+    "name": "Anderes",
+    "items": [
+      "Kaffee",
+      "Marmelade/Gelee",
+      "Nudeln",
+      "Reis",
+      "Maizena",
+      "Blumen",
+      "Zigaretten"
+    ]
+  },
+  {
+    "name": "Asia",
+    "items": [
+      "Soyasauce",
+      "Oystersauce",
+      "5Spice",
+      "Kochwein / Sherry / Port"
+    ]
+  },
+  {
+    "name": "Non-Food",
+    "items": [
+      "Zewa",
+      "Alufolie",
+      "Cellophan",
+      "Batterien",
+      "Zahnstocher",
+      "Stift",
+      "Müllsäcke"
+    ]
+  },
+  {
+    "name": "Drogerie",
+    "items": [
+      "Duschgel",
+      "Zahnpasta",
+      "Zahnbürste",
+      "ZR-Bürsten CPS Perio (408: 2,2 / 8,0 · 406: 1,7 / 6,5)",
+      "Deo hidrofugal",
+      "Rasiergel",
+      "Rasierklingen",
+      "Q-Tips",
+      "Handcreme",
+      "Labello Sunscreen",
+      "Melatonin",
+      "Mela & Magnesium"
+    ]
+  },
+  {
+    "name": "Baumarkt",
+    "items": [
+      "Klett",
+      "WD40",
+      "Fett"
+    ]
+  },
+  {
+    "name": "Sonstige Besorgungen",
+    "items": [
+      "Apotheke"
+    ]
+  }
+];
+
+let state, tab = "items", edit = false;
+
+function load() {
+  try { state = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  if (!state || !Array.isArray(state.cats)) {
+    state = { cats: DEFAULT.map(c => ({ name: c.name, items: c.items.map(n => ({ n, on: false })) })) };
+  }
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+function render() {
+  const count = state.cats.reduce((a, c) => a + c.items.filter(i => i.on).length, 0);
+  $("badge").textContent = count;
+  $("tabItems").classList.toggle("active", tab === "items");
+  $("tabShop").classList.toggle("active", tab === "shop");
+  $("title").textContent = tab === "items" ? "Artikel" : "Einkauf";
+  $("editBtn").style.visibility = tab === "items" ? "visible" : "hidden";
+  $("editBtn").textContent = edit ? "Fertig" : "Bearbeiten";
+
+  let html = "";
+  if (tab === "items") {
+    state.cats.forEach((c, ci) => {
+      html += `<section><h2><span>${esc(c.name)}</span><button data-add="${ci}" aria-label="Artikel hinzufügen">+</button></h2><div class="list">`;
+      c.items.forEach((it, ii) => {
+        html += edit
+          ? `<div class="row"><span class="name">${esc(it.n)}</span><button class="del" data-del="${ci}:${ii}">−</button></div>`
+          : `<button class="row ${it.on ? "on" : ""}" data-tog="${ci}:${ii}"><span class="dot"></span><span class="name">${esc(it.n)}</span></button>`;
+      });
+      if (!c.items.length) html += `<div class="row"><span class="name" style="color:var(--muted)">leer</span></div>`;
+      html += `</div></section>`;
+    });
+    if (edit) {
+      html += `<div class="tools"><button data-newcat>Kategorie anlegen</button><button data-export>Sichern</button></div>`;
+    } else {
+      html += `<p class="hint">Antippen = auf die Einkaufsliste</p>`;
+    }
+  } else {
+    if (!count) {
+      html = `<div class="empty"><b>Nichts auf der Liste</b>Unter „Artikel“ antippen, was fehlt.</div>`;
+    } else {
+      state.cats.forEach((c, ci) => {
+        const open = c.items.map((it, ii) => ({ it, ii })).filter(x => x.it.on);
+        if (!open.length) return;
+        html += `<section><h2><span>${esc(c.name)}</span></h2><div class="list">`;
+        open.forEach(x => {
+          html += `<button class="row" data-tog="${ci}:${x.ii}"><span class="dot"></span><span class="name">${esc(x.it.n)}</span></button>`;
+        });
+        html += `</div></section>`;
+      });
+      html += `<p class="hint">Antippen = erledigt</p>`;
+    }
+  }
+  $("main").innerHTML = html;
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("button");
+  if (!t) return;
+  if (t.id === "tabItems") { tab = "items"; render(); return; }
+  if (t.id === "tabShop") { tab = "shop"; edit = false; render(); return; }
+  if (t.id === "editBtn") { edit = !edit; render(); return; }
+  if (t.dataset.tog) {
+    const [c, i] = t.dataset.tog.split(":").map(Number);
+    state.cats[c].items[i].on = !state.cats[c].items[i].on;
+    save(); render(); return;
+  }
+  if (t.dataset.add !== undefined) {
+    const name = (prompt("Neuer Artikel in „" + state.cats[t.dataset.add].name + "“:") || "").trim();
+    if (name) { state.cats[t.dataset.add].items.push({ n: name, on: false }); save(); render(); }
+    return;
+  }
+  if (t.dataset.del) {
+    const [c, i] = t.dataset.del.split(":").map(Number);
+    if (confirm("„" + state.cats[c].items[i].n + "“ löschen?")) { state.cats[c].items.splice(i, 1); save(); render(); }
+    return;
+  }
+  if (t.dataset.newcat !== undefined) {
+    const name = (prompt("Name der neuen Kategorie:") || "").trim();
+    if (name) { state.cats.push({ name, items: [] }); save(); render(); }
+    return;
+  }
+  if (t.dataset.export !== undefined) {
+    const txt = JSON.stringify(state);
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+      .then(() => alert("Sicherung in der Zwischenablage. Zum Beispiel in eine Notiz einfügen."))
+      .catch(() => prompt("Sicherung kopieren:", txt));
+  }
+});
+
+load(); render();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
