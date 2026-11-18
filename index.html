@@ -332,7 +332,7 @@ function render() {
       html += `</div></section>`;
     });
     if (edit) {
-      html += `<div class="tools"><button data-newcat>Kategorie anlegen</button><button data-export>Sichern</button></div>`;
+      html += `<div class="tools"><button data-newcat>Kategorie anlegen</button><button data-export>Sichern</button><button data-import>Wiederherstellen</button></div>`;
     } else {
       html += `<p class="hint">Antippen = auf die Einkaufsliste</p>`;
     }
@@ -399,6 +399,30 @@ document.addEventListener("click", e => {
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
       .then(() => alert("Sicherung in der Zwischenablage. Zum Beispiel in eine Notiz einfügen."))
       .catch(() => prompt("Sicherung kopieren:", txt));
+    return;
+  }
+  if (t.dataset.import !== undefined) {
+    const txt = (prompt("Gesicherten Text hier einfügen:") || "").trim();
+    if (!txt) return;
+    let cats;
+    try {
+      const d = JSON.parse(txt);
+      if (!Array.isArray(d.cats)) throw 0;
+      cats = d.cats.map(c => {
+        if (typeof c.name !== "string" || !Array.isArray(c.items)) throw 0;
+        return { name: c.name, items: c.items.map(i => {
+          if (typeof i.n !== "string") throw 0;
+          return { n: i.n, on: !!i.on };
+        }) };
+      });
+    } catch (e) {
+      alert("Das ist keine gültige Sicherung. Nichts wurde geändert.");
+      return;
+    }
+    const n = cats.reduce((a, c) => a + c.items.length, 0);
+    if (confirm(`Sicherung mit ${cats.length} Kategorien und ${n} Artikeln laden? Die aktuelle Liste wird ersetzt.`)) {
+      state = { cats }; save(); render();
+    }
   }
 });
 
