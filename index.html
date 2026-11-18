@@ -89,6 +89,7 @@
 </header>
 <main id="main"></main>
 <nav>
+  <button id="tabCats">Sektionen</button>
   <button id="tabItems">Artikel</button>
   <button id="tabShop">Einkauf <span class="badge" id="badge">0</span></button>
 </nav>
@@ -313,14 +314,15 @@ function render() {
   $("badge").textContent = count;
   $("tabItems").classList.toggle("active", tab === "items");
   $("tabShop").classList.toggle("active", tab === "shop");
-  $("title").textContent = tab === "items" ? "Artikel" : "Einkauf";
+  $("tabCats").classList.toggle("active", tab === "cats");
+  $("title").textContent = tab === "items" ? "Artikel" : tab === "cats" ? "Sektionen" : "Einkauf";
   $("editBtn").style.visibility = tab === "items" ? "visible" : "hidden";
   $("editBtn").textContent = edit ? "Fertig" : "Bearbeiten";
 
   let html = "";
   if (tab === "items") {
     state.cats.forEach((c, ci) => {
-      html += `<section><h2><span>${esc(c.name)}</span><button data-add="${ci}" aria-label="Artikel hinzufügen">+</button></h2><div class="list">`;
+      html += `<section id="cat-${ci}"><h2><span>${esc(c.name)}</span><button data-add="${ci}" aria-label="Artikel hinzufügen">+</button></h2><div class="list">`;
       c.items.forEach((it, ii) => {
         html += edit
           ? `<div class="row"><span class="name">${esc(it.n)}</span><button class="del" data-del="${ci}:${ii}">−</button></div>`
@@ -334,6 +336,12 @@ function render() {
     } else {
       html += `<p class="hint">Antippen = auf die Einkaufsliste</p>`;
     }
+  } else if (tab === "cats") {
+    html += `<section><div class="list">`;
+    state.cats.forEach((c, ci) => {
+      html += `<button class="row" data-jump="${ci}"><span class="name">${esc(c.name)}</span></button>`;
+    });
+    html += `</div></section>`;
   } else {
     if (!count) {
       html = `<div class="empty"><b>Nichts auf der Liste</b>Unter „Artikel“ antippen, was fehlt.</div>`;
@@ -359,6 +367,13 @@ document.addEventListener("click", e => {
   if (t.id === "tabItems") { tab = "items"; render(); return; }
   if (t.id === "tabShop") { tab = "shop"; edit = false; render(); return; }
   if (t.id === "editBtn") { edit = !edit; render(); return; }
+  if (t.id === "tabCats") { tab = "cats"; render(); $("main").scrollTop = 0; return; }
+  if (t.dataset.jump !== undefined) {
+    tab = "items"; render();
+    const sec = $("cat-" + t.dataset.jump);
+    if (sec) sec.scrollIntoView({ block: "start" });
+    return;
+  }
   if (t.dataset.tog) {
     const [c, i] = t.dataset.tog.split(":").map(Number);
     state.cats[c].items[i].on = !state.cats[c].items[i].on;
